@@ -4,6 +4,9 @@ const morgan = require("morgan");
 const handlebars = require("express-handlebars");
 const res = require("express/lib/response");
 const app = express();
+const db = require("./config/db");
+// Connect to DB
+db.connect();
 const port = 5000;
 const routes = require("./routes");
 
@@ -28,9 +31,9 @@ app.engine(
   })
 );
 app.set("view engine", "hbs");
-app.set("views", path.join(__dirname, "/resources/views"));
+app.set("views", path.join(__dirname, "resources", "views"));
 //router
-route(app);
+routes(app);
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`App listening on port ${port}`);
 });
