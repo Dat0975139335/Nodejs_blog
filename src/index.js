@@ -1,39 +1,82 @@
-const express = require("express");
-const path = require("path");
-const morgan = require("morgan");
-const handlebars = require("express-handlebars");
-const res = require("express/lib/response");
-const app = express();
-const db = require("./config/db");
+const path = require('path');
+const express = require('express');
+const morgan = require('morgan');
+const methodOverride = require('method-override');
+const handlebars = require('express-handlebars');
+const SortMiddleware = require('./app/middlewares/SortMiddleware');
+
+const route = require('./routes');
+const db = require('./config/db');
+
 // Connect to DB
 db.connect();
-const port = 5000;
-const routes = require("./routes");
 
-app.use(express.static(path.join(__dirname, "public")));
+const app = express();
+const port = 3000;
+
+// Use static folder
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(
-  express.urlencoded({
-    extended: true,
-  })
+    express.urlencoded({
+        extended: true,
+    }),
 );
 app.use(express.json());
 
-// XMLHttpRequest. fetch,axios
+app.use(methodOverride('_method'));
+//Custom middLeware
+app.use(SortMiddleware);
 
-//HTTP logger
-app.use(morgan("combined"));
+
+
+function bacBaoVe (req,res,next) {
+    if (['vethuong','vevip'].includes(req.query.ve)) {
+        req.face = 'Gach Gach Gach';
+        return next;
+    }
+    res.status(403).json({
+        message:"Access denied"
+    });
+}
+// HTTP logger
+// app.use(morgan('combined'));
 
 // Template engine
 app.engine(
-  "hbs",
-  handlebars.engine({
-    extname: ".hbs",
-  })
+    'hbs',
+    handlebars({
+        extname: '.hbs',
+        helpers: {
+            sum: (a, b) => a + b,
+            sortable : (field,sort) => {
+                const sortType = field === sort.column ? sort.type : 'default';
+                const icons = {
+                    default:'oi oi-elevator',
+                    asc:'oi oi-sort-ascending',
+                    desc:'oi oi-sort-descending',
+                };
+
+                const types = {
+                    default:'desc',
+                    asc:'desc',
+                    desc:'asc',
+                };
+                const icon = icons[sortType];
+                const type = types[sortType];
+                return `<a> href = "?_sort&colum=${field}&type=${type}">
+                <span class ="${icon}"></span>
+                </a>`;
+            }
+        },
+    }),
 );
-app.set("view engine", "hbs");
-app.set("views", path.join(__dirname, "resources", "views"));
-//router
-routes(app);
-app.listen(port, () => {
-  console.log(`App listening on port ${port}`);
-});
+app.set('view engine', 'hbs');
+app.set('views', path.join(__dirname, 'resources', 'views'));
+
+// Routes init
+route(app);
+
+app.listen(port, () =>
+    console.log(`App listening at http://localhost:${port}`),
+);
